@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.1 — 2026-10-18
+
+### Added
+
+- Live key adjustment from −12 to +12 semitones without changing tempo or the CD+G timeline. −1 lowers by half a tone; −2 lowers by one tone; 0 restores the original key.
+- Native − / value / + controls, click-to-reset, and Playback → Key commands with Option-Command-Down/Up/0 shortcuts.
+- In-memory MP3-to-PCM decoding and an AVAudioEngine/TimePitch graph with a rendered-source clock and reported output/DSP latency compensation.
+- Synthetic DSP regressions measuring output pitch, audible duration, burst timing, and transport transitions.
+
+### Fixed
+
+- Empty View menu. View now has one Enter/Exit Full Screen action with Control-Command-F; it follows the window state and survives playback/key changes and native menu rebuilds.
+- Main-actor isolation at the AVFoundation completion boundary, and clock reads before the first valid render timestamp.
+- Seeking to the exact end of a fractional-duration track now lands on the final frame and Play correctly restarts from zero.
+
 ## 0.1.0 — 2026-10-18
 
 ### Added

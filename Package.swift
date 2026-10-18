@@ -13,11 +13,13 @@ let package = Package(
     ],
     targets: [
         .target(name: "CDGCore"),
+        .target(name: "KaraokeAudio"),
         .target(name: "KaraokeImport", dependencies: [
             .product(name: "ZIPFoundation", package: "ZIPFoundation")
         ]),
-        .executableTarget(name: "Daraoke", dependencies: ["CDGCore", "KaraokeImport"]),
+        .executableTarget(name: "Daraoke", dependencies: ["CDGCore", "KaraokeImport", "KaraokeAudio"]),
         .testTarget(name: "CDGCoreTests", dependencies: ["CDGCore"]),
+        .testTarget(name: "KaraokeAudioTests", dependencies: ["KaraokeAudio"]),
         .testTarget(name: "KaraokeImportTests", dependencies: ["KaraokeImport",
             .product(name: "ZIPFoundation", package: "ZIPFoundation")
         ])

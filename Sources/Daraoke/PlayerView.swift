@@ -192,7 +192,8 @@ struct PlayerView: View {
                     TransportButton(symbol: "arrow.up.left.and.arrow.down.right", label: "Toggle fullscreen") { model.toggleFullscreen() }
                 }
                 .disabled(model.song == nil)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    keyControl
                     Button { showTiming.toggle() } label: {
                         Label("Timing", systemImage: "slider.horizontal.3").font(.system(size: 12))
                             .foregroundStyle(model.lyricsOffset == 0 ? muted : rose)
@@ -206,6 +207,39 @@ struct PlayerView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
+    }
+
+    private var keyControl: some View {
+        HStack(spacing: 3) {
+            Text("KEY").font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(muted).padding(.trailing, 4)
+            Button { model.changeKey(by: -1) } label: {
+                Image(systemName: "minus").frame(width: 20, height: 24)
+            }
+            .disabled(model.keyShift <= -12)
+            .accessibilityLabel("Lower key by one semitone")
+            .help("Lower key by a half tone (⌥⌘↓)")
+            Button(action: model.resetKey) {
+                Text(model.keyShift == 0 ? "0" : String(format: "%+d", model.keyShift))
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(model.keyShift == 0 ? muted : rose)
+                    .frame(width: 29, height: 24)
+            }
+            .accessibilityLabel("Reset key to original")
+            .accessibilityValue("\(model.keyShift) semitones")
+            .help("Original key is 0. Click to reset (⌥⌘0)")
+            Button { model.changeKey(by: 1) } label: {
+                Image(systemName: "plus").frame(width: 20, height: 24)
+            }
+            .disabled(model.keyShift >= 12)
+            .accessibilityLabel("Raise key by one semitone")
+            .help("Raise key by a half tone (⌥⌘↑)")
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 11, weight: .medium))
+        .padding(.horizontal, 7).padding(.vertical, 3)
+        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+        .disabled(model.song == nil)
     }
 
     private var timingPanel: some View {

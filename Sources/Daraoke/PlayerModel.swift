@@ -1,5 +1,5 @@
 import AppKit
-import AVFoundation
+import KaraokeAudio
 import CDGCore
 import Combine
 import KaraokeImport
@@ -13,25 +13,43 @@ struct PlayingSong {
 }
 
 @MainActor
-final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
+final class PlayerModel: ObservableObject {
     @Published private(set) var song: PlayingSong?
     @Published private(set) var isLoading = false
     @Published private(set) var isPlaying = false
     @Published private(set) var elapsed: Double = 0
     @Published private(set) var duration: Double = 0
     @Published private(set) var frameRevision: UInt64 = 0
+    @Published private(set) var keyShift = 0
     @Published var errorMessage: String?
     @Published var volume: Double = 0.8 {
-        didSet { audio?.volume = Float(volume) }
+        didSet { audio.volume = Float(volume) }
     }
     @Published var lyricsOffset: Double = 0 {
         didSet { updateGraphics() }
     }
 
     private(set) var decoder: CDGDecoder?
-    private var audio: AVAudioPlayer?
+    private let audio = KaraokePlayback()
     private var timer: Timer?
     private var lastRenderedRevision: UInt64?
+
+    init() {
+        audio.onEnded = { [weak self] in
+            guard let self else { return }
+            self.stopTimer()
+            self.isPlaying = false
+            self.elapsed = self.duration
+            self.updateGraphics()
+        }
+        audio.onError = { [weak self] message in
+            guard let self else { return }
+            self.stopTimer()
+            self.isPlaying = false
+            self.refresh()
+            self.errorMessage = message
+        }
+    }
 
     func chooseZip() {
         guard !isLoading else { return }
@@ -84,29 +102,20 @@ final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 if scopedAccess { url.stopAccessingSecurityScopedResource() }
             }
             do {
-                let imported = try await Task.detached(priority: .userInitiated) {
-                    try SongImporter.load(zipURL: url)
+                let (imported, decoded) = try await Task.detached(priority: .userInitiated) {
+                    let imported = try SongImporter.load(zipURL: url)
+                    return (imported, try DecodedAudio(mp3Data: imported.audioData))
                 }.value
-                let nextAudio: AVAudioPlayer
-                do {
-                    nextAudio = try AVAudioPlayer(data: imported.audioData, fileTypeHint: AVFileType.mp3.rawValue)
-                    guard nextAudio.duration.isFinite, nextAudio.duration > 0, nextAudio.prepareToPlay() else {
-                        throw CocoaError(.fileReadCorruptFile)
-                    }
-                } catch {
-                    throw PlaybackError.invalidAudio
-                }
-                // Validate before stopping the current song: failed imports leave playback intact.
+                // Import and decode before stopping the current song.
                 stopTimer()
-                audio?.stop()
-                audio = nextAudio
-                nextAudio.volume = Float(volume)
-                nextAudio.delegate = self
+                audio.load(decoded)
+                audio.volume = Float(volume)
+                resetKey()
                 decoder = CDGDecoder(data: imported.cdgData)
                 lastRenderedRevision = nil
                 song = PlayingSong(title: imported.title, artist: imported.artist,
                                    year: imported.year, fileName: imported.fileName)
-                duration = nextAudio.duration
+                duration = decoded.duration
                 elapsed = 0
                 lyricsOffset = 0
                 updateGraphics()
@@ -119,7 +128,7 @@ final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     func togglePlayback() {
         if isPlaying {
-            audio?.pause()
+            audio.pause()
             isPlaying = false
             stopTimer()
             refresh()
@@ -129,13 +138,15 @@ final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func play() {
-        guard let audio else { return }
+        guard song != nil else { return }
         if audio.currentTime >= duration - 0.02 {
-            audio.currentTime = 0
+            audio.seek(to: 0)
             decoder?.reset()
         }
-        guard audio.play() else {
-            errorMessage = "The audio output could not start. Check your Mac’s sound output and try Play again."
+        do {
+            try audio.play()
+        } catch {
+            errorMessage = "The audio output could not start. Check your Mac’s sound output and try Play again. \(error.localizedDescription)"
             return
         }
         isPlaying = true
@@ -144,13 +155,12 @@ final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func seek(to time: Double) {
-        guard let audio, time.isFinite else { return }
+        guard song != nil, time.isFinite else { return }
         let target = min(max(0, time), duration)
-        audio.currentTime = target
+        audio.seek(to: target)
         elapsed = target
-        if target >= duration {
-            audio.pause()
-            isPlaying = false
+        isPlaying = audio.isPlaying
+        if !isPlaying {
             stopTimer()
         }
         updateGraphics()
@@ -158,6 +168,17 @@ final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     func skip(by seconds: Double) {
         seek(to: elapsed + seconds)
+    }
+
+    func changeKey(by semitones: Int) {
+        guard song != nil else { return }
+        keyShift = min(12, max(-12, keyShift + semitones))
+        audio.semitones = keyShift
+    }
+
+    func resetKey() {
+        keyShift = 0
+        audio.semitones = 0
     }
 
     func toggleFullscreen() {
@@ -179,48 +200,18 @@ final class PlayerModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     private func refresh() {
-        guard let audio else { return }
         if abs(elapsed - audio.currentTime) >= 0.08 { elapsed = audio.currentTime }
         updateGraphics()
     }
 
     private func updateGraphics() {
         guard let decoder else { return }
-        decoder.seek(to: max(0, (audio?.currentTime ?? elapsed) + lyricsOffset))
+        decoder.seek(to: max(0, audio.currentTime + lyricsOffset))
         if lastRenderedRevision != decoder.revision {
             lastRenderedRevision = decoder.revision
             frameRevision &+= 1
         }
     }
 
-    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        let identity = ObjectIdentifier(player)
-        Task { @MainActor [weak self] in
-            guard let self, let audio = self.audio, ObjectIdentifier(audio) == identity else { return }
-            self.stopTimer()
-            self.isPlaying = false
-            self.elapsed = self.duration
-            self.decoder?.seek(to: max(0, self.duration + self.lyricsOffset))
-            self.frameRevision &+= 1
-            if !flag { self.errorMessage = "Playback stopped because the audio could not be decoded." }
-        }
-    }
-
-    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: (any Error)?) {
-        let identity = ObjectIdentifier(player)
-        Task { @MainActor [weak self] in
-            guard let self, let audio = self.audio, ObjectIdentifier(audio) == identity else { return }
-            self.stopTimer()
-            self.isPlaying = false
-            self.errorMessage = "The MP3 could not be decoded. Try another copy of this song."
-        }
-    }
 }
 
-private enum PlaybackError: LocalizedError {
-    case invalidAudio
-
-    var errorDescription: String? {
-        "The MP3 is empty, damaged, or cannot be decoded. Try another copy of this karaoke ZIP."
-    }
-}
