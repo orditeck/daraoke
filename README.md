@@ -9,7 +9,7 @@
 Drop a ZIP onto the window, or use **Open ZIP** (`⌘O`). It should contain one MP3 and its CDG graphics; you do not need to unzip it. Playback starts automatically.
 
 - Crisp CD+G graphics in a 4:3 stage, synchronized to the audio clock.
-- Play/pause, seek, restart, skip, volume, and native fullscreen.
+- Play/pause, seek, restart, skip, volume, and native fullscreen. Double-click the stage to enter or leave fullscreen.
 - **Key adjustment:** whole semitones from −12 to +12 without changing tempo. −1 is half a tone down; −2 is one tone down. Use − / value / +, or click the value to reset to original key (0). Changes apply live; each newly opened song starts at 0.
 - Lyrics timing adjustment from −3 to +3 seconds; positive values show lyrics earlier.
 - Title, artist, and year from supported ID3 tags, with filename fallback.
@@ -28,7 +28,7 @@ The repository is private for now. Its owner decides when to make it public; the
 | Play / pause | `Space` |
 | Seek backward / forward 5 seconds | `←` / `→` |
 | Restart | `⌘R` |
-| Fullscreen | `⌃⌘F` (View menu) |
+| Fullscreen | Double-click the stage, or `⌃⌘F` (View menu) |
 | Lower / raise key one semitone | `⌥⌘↓` / `⌥⌘↑` |
 | Reset to original key | `⌥⌘0` |
 
@@ -69,7 +69,7 @@ Graphics timing follows the player's rendered source sample clock, accounting fo
 
 [GitHub milestones](https://github.com/orditeck/daraoke/milestones) and their issues are the source of truth for scope and acceptance criteria:
 
-- **0.1 · Drop & sing** — native macOS single-ZIP playback, semitone key control, and native menu fixes.
+- **0.1 · Drop & sing** — native macOS single-ZIP playback, semitone key control, native menu fixes, and stage double-click fullscreen.
 - **0.2 · Your library** — SQLite catalog, multiple source directories, incremental scans, metadata, search, and loose MP3/CDG pairs.
 - **0.3 · Drives come and go** — offline sources, stable source identity, reconnect/relink, and safe scan reconciliation without deleting missing songs.
 - **0.4 · Ready for a karaoke night** — queue, dual-screen lyrics, and signed/notarized distribution.

@@ -61,7 +61,7 @@ struct DaraokeApp: App {
                 Button("About Daraoké") {
                     NSApp.orderFrontStandardAboutPanel(options: [
                         .applicationName: "Daraoké",
-                        .applicationVersion: "0.1.1",
+                        .applicationVersion: "0.1.2",
                         .credits: NSAttributedString(string: "Your songs. Your stage.\nOpen-source karaoke for macOS.")
                     ])
                 }

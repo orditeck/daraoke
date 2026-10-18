@@ -29,6 +29,9 @@ final class GraphicsView: NSView {
 
     override var isOpaque: Bool { true }
 
+    // The stage owns pointer gestures; this view only renders lyrics.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
     override func draw(_ dirtyRect: NSRect) {
         NSColor.black.setFill()
         bounds.fill()

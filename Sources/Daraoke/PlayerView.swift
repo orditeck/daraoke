@@ -96,6 +96,8 @@ struct PlayerView: View {
                 RoundedRectangle(cornerRadius: 22)
                     .strokeBorder(dropTarget ? rose : .white.opacity(0.07), lineWidth: dropTarget ? 2 : 1)
             }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2, perform: model.toggleFullscreen)
         }
     }
 
@@ -214,7 +216,9 @@ struct PlayerView: View {
             Text("KEY").font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .foregroundStyle(muted).padding(.trailing, 4)
             Button { model.changeKey(by: -1) } label: {
-                Image(systemName: "minus").frame(width: 20, height: 24)
+                Image(systemName: "minus")
+                    .frame(width: 20, height: 24)
+                    .contentShape(Rectangle())
             }
             .disabled(model.keyShift <= -12)
             .accessibilityLabel("Lower key by one semitone")
@@ -224,12 +228,15 @@ struct PlayerView: View {
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundStyle(model.keyShift == 0 ? muted : rose)
                     .frame(width: 29, height: 24)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Reset key to original")
             .accessibilityValue("\(model.keyShift) semitones")
             .help("Original key is 0. Click to reset (⌥⌘0)")
             Button { model.changeKey(by: 1) } label: {
-                Image(systemName: "plus").frame(width: 20, height: 24)
+                Image(systemName: "plus")
+                    .frame(width: 20, height: 24)
+                    .contentShape(Rectangle())
             }
             .disabled(model.keyShift >= 12)
             .accessibilityLabel("Raise key by one semitone")

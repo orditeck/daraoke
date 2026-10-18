@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2 — 2026-10-18
+
+### Added
+
+- Double-click the karaoke stage to enter or leave native fullscreen, with or without a song loaded. Letterboxing is clickable too; single clicks and transport controls do not toggle fullscreen.
+
+### Fixed
+
+- The key-lowering minus button now responds across its full rectangular hit area instead of only the thin glyph. Plus and reset use the same full-frame hit targets.
+
 ## 0.1.1 — 2026-10-18
 
 ### Added
