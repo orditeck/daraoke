@@ -1,0 +1,44 @@
+name: Native Swift
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject karaoke media in the repository
+        run: |
+          if git ls-files | grep -Eiq '\.(zip|mp3|cdg)$'; then
+            echo 'Karaoke archives, audio, and graphics must never be committed.' >&2
+            exit 1
+          fi
+      - name: Swift version
+        run: swift --version
+      - name: Behavior tests
+        run: bash scripts/test.sh
+  package:
+    needs: test
+    runs-on: macos-15
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ad-hoc signed application
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: bash scripts/package-macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Daraoke-macos-${{ matrix.arch }}
+          path: build/Daraoke-*-macos-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          retention-days: 14

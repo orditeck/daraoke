@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a reproducible player or library bug.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Never attach karaoke ZIPs, MP3s, CDGs, library databases, personal paths, or track-identifying screenshots. Use original synthetic fixtures only."
+  - type: input
+    id: version
+    attributes:
+      label: Daraoké version and macOS version
+      placeholder: "0.1.0, macOS 15, Apple Silicon"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Sanitized technical details
+      description: "For import problems: archive layout, filename extensions, and error text with personal data removed. Do not upload the song."

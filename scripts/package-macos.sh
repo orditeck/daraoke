@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+CONFIGURATION="${CONFIGURATION:-release}"
+ARCH="${ARCH:-$(uname -m)}"
+case "$ARCH" in arm64|x86_64) ;; *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;; esac
+swift build -c "$CONFIGURATION" --arch "$ARCH"
+BIN_DIR="$(swift build -c "$CONFIGURATION" --arch "$ARCH" --show-bin-path)"
+APP="$ROOT/build/Daraoké.app"
+# SwiftPM resource files may be read-only; replace the generated bundle as a unit.
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$BIN_DIR/Daraoke" "$APP/Contents/MacOS/Daraoke"
+cp "$ROOT/Support/Info.plist" "$APP/Contents/Info.plist"
+cp -R "$BIN_DIR/ZIPFoundation_ZIPFoundation.bundle" "$APP/Contents/Resources/"
+cp "$ROOT/LICENSE" "$APP/Contents/Resources/LICENSE"
+cp "$ROOT/.build/checkouts/ZIPFoundation/LICENSE" "$APP/Contents/Resources/ZIPFoundation-LICENSE"
+swift "$ROOT/scripts/make-icon.swift" "$ROOT/build/AppIcon.iconset"
+iconutil -c icns "$ROOT/build/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
+codesign --force --deep --sign - "$APP"
+ARCHIVE="$ROOT/build/Daraoke-0.1.0-macos-$ARCH.zip"
+ditto -c -k --sequesterRsrc --keepParent "$APP" "$ARCHIVE"
+echo "Built $APP"
+echo "Archive $ARCHIVE"
